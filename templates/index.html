@@ -1,0 +1,148 @@
+<html>
+ <head>
+    <title>Send templated emails</title>
+    <style>
+        .hidden {
+            display: none;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            width: 400px;
+            }
+        li {
+                clear: both;
+            }
+        li button{
+            -webkit-appearance: none;
+            background:white;
+            border: none;
+            outline: none;
+            color: red;
+            float: right;
+            cursor: pointer;
+            font-size: 20px;
+        }
+         .users-wrapper{
+            display: inline-block;
+            vertical-align: top;
+        }
+        .vertical-center {
+            text-align: center;
+         }
+    </style>
+ </head>
+ <body>
+
+    <div class="users-wrapper">
+        <h4>Users</h4>
+        <form id="form">
+            <input type="text" id="name" name="name">
+            <input type="text" id="email" name="email">
+            <input type="submit" value="Create User">
+        </form>
+        <div id="error" class="hidden">Something went wrong!</div>
+        <ul id="users">
+            {% for user in users %}
+            <li><input class="check_completed" type="checkbox" data-id="{{ user.id }}"  /> {{ user.name +" "+" "+ user.email }}
+            <button class="delete_button" data-id="{{user.id}}">&cross;</button></li>
+            {% endfor %}
+
+        </ul>
+        <br>
+    </div>
+    <div style="margin-left:22em"><tr><form id="send"><input  type="submit" value="Send Email"></form></div>
+
+    <script>
+
+            const checkboxes = document.querySelectorAll('.check_completed');
+            const userId = new Array(checkboxes.length);
+            for (let i = 0; i<checkboxes.length;i++){
+                const checkbox = checkboxes[i];
+                checkbox.onchange = function(e){
+                    console.log('event',e);
+                    const newCompleted = e.target.checked;
+                    if(newCompleted == true)
+                    {
+                         userId[i] = e.target.dataset['id'];
+                    }else{
+                        userId[i]=null;
+                    }
+                }
+                 document.getElementById('send').onsubmit = function(e) {
+                    e.preventDefault();
+                    fetch('/users/sendEmail',{
+                        method: 'POST',
+                        body: JSON.stringify({
+                            'userId': userId
+                        }),
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+
+                    })
+                    .then(function(){
+                        document.getElementById('error').className="hidden";
+                    })
+                    .catch(function(){
+                        document.getElementById('error').className= '';
+                    })
+                }
+            }
+
+            const delete_Button = document.querySelectorAll('.delete_button');
+            for (let i = 0;i<delete_Button.length;i++){
+                const deletebtn = delete_Button[i];
+                deletebtn.onclick=function(e){
+                    console.log('delete',e);
+                    const delete_id = e.target.dataset['id'];
+                    fetch('/users/' + delete_id ,{
+                        method: 'DELETE'
+
+                    })
+                    .then(function(response){
+                        document.getElementById('error').className="hidden";
+                        return response.json();
+                    })
+                    .then(function(jsonResponse) {
+                        console.log(jsonResponse);
+
+
+                    })
+                    .catch(function(){
+                        document.getElementById('error').className= '';
+                    })
+                }
+            }
+
+            document.getElementById('form').onsubmit = function(e) {
+                e.preventDefault();
+                fetch('/users/create',{
+                    method: 'Post',
+                    body: JSON.stringify({
+                        'name': document.getElementById('name').value
+                        ,'email': document.getElementById('email').value
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(function(response) {
+                    return response.json();
+
+                })
+                .then(function(jsonResponse) {
+                    console.log(jsonResponse);
+                    const liItem = document.createElement('LI');
+                    liItem.innerHTML = jsonResponse['name'];
+                    document.getElementById('users').appendChild(liItem);
+                    document.getElementById('error').className="hidden";
+                })
+                .catch(function(){
+                    document.getElementById('error').className= '';
+                })
+            }
+    </script>
+ </body>
+</html>
